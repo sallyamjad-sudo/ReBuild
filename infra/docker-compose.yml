@@ -1,0 +1,22 @@
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: rebuild-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rebuild_user
+      POSTGRES_PASSWORD: ${REBUILD_DB_PASSWORD:?Set REBUILD_DB_PASSWORD}
+      POSTGRES_DB: rebuild_db
+    ports:
+      - "127.0.0.1:15433:5432"
+    volumes:
+      - rebuild_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rebuild_user -d rebuild_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  rebuild_postgres_data:
