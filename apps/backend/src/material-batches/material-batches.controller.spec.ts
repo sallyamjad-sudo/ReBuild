@@ -1,3 +1,4 @@
+import { MaterialBatchesService } from './material-batches.service.js';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MaterialBatchesController } from './material-batches.controller.js';
 
@@ -7,6 +8,9 @@ describe('MaterialBatchesController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MaterialBatchesController],
+      providers: [
+        { provide: MaterialBatchesService, useValue: {} },
+      ],
     }).compile();
 
     controller = module.get<MaterialBatchesController>(MaterialBatchesController);

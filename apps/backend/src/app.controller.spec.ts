@@ -1,22 +1,49 @@
+
 import { Test, TestingModule } from '@nestjs/testing';
+import { vi } from 'vitest';
 import { AppController } from './app.controller.js';
-import { AppService } from './app.service.js';
+import { PrismaService } from './prisma/prisma.service.js';
 
 describe('AppController', () => {
-  let appController: AppController;
+  let controller: AppController;
+
+  const mockPrismaService = {
+    company: {
+      count: vi.fn(),
+    },
+  };
 
   beforeEach(async () => {
-    const app: TestingModule = await Test.createTestingModule({
+    vi.clearAllMocks();
+
+    const module: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
-      providers: [AppService],
+      providers: [
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
+      ],
     }).compile();
 
-    appController = app.get<AppController>(AppController);
+    controller = module.get<AppController>(AppController);
   });
 
-  describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
+  it('should return database health status', async () => {
+    mockPrismaService.company.count.mockResolvedValue(5);
+
+    const result = await controller.checkDatabase();
+
+    expect(result).toEqual({
+      status: 'ok',
+      database: 'connected',
+      companies: 5,
     });
+
+    expect(mockPrismaService.company.count).toHaveBeenCalledTimes(1);
   });
 });
