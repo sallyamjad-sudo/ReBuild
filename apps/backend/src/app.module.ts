@@ -11,6 +11,7 @@ import { WarehousesModule } from './warehouses/warehouses.module.js';
 import { InventoryLocationsModule } from './inventory-locations/inventory-locations.module.js';
 import { MaterialsModule } from './materials/materials.module.js';
 import { MaterialCategoriesModule } from './material-categories/material-categories.module.js';
+import { MaterialBatchesModule } from './material-batches/material-batches.module.js';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { MaterialCategoriesModule } from './material-categories/material-categor
     InventoryLocationsModule,
     MaterialsModule,
     MaterialCategoriesModule,
+    MaterialBatchesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
