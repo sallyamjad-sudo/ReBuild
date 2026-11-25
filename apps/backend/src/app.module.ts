@@ -8,6 +8,7 @@ import { CompaniesModule } from './companies/companies.module.js';
 import { ProjectsModule } from './projects/projects.module.js';
 import { SitesModule } from './sites/sites.module.js';
 import { WarehousesModule } from './warehouses/warehouses.module.js';
+import { InventoryLocationsModule } from './inventory-locations/inventory-locations.module.js';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { WarehousesModule } from './warehouses/warehouses.module.js';
     ProjectsModule,
     SitesModule,
     WarehousesModule,
+    InventoryLocationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
