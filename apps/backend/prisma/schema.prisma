@@ -1,7 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// ReBuild — Prisma Schema (62 models, 8 parts)
+// Generated from docs/database/data-dictionary.md v0.2
+// REVIEW DRAFT — not migration-ready. Business rules and SQL checks remain open.
 
 generator client {
   provider = "prisma-client"
@@ -10,4 +9,1718 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// ==========================================
+// PART 1 — COMPANY / PROJECT / LOCATIONS
+// ==========================================
+
+enum CompanyStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+// 1. Company
+model Company {
+  id        String        @id @default(uuid()) @db.Uuid
+  name      String        @db.VarChar(200)
+  status    CompanyStatus
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  projects              Project[]              @relation("Project_companyId")
+  warehouses            Warehouse[]            @relation("Warehouse_companyId")
+  inventoryLocations    InventoryLocation[]    @relation("InventoryLocation_companyId")
+  materialRequests      MaterialRequest[]      @relation("MaterialRequest_companyId")
+  transfers             Transfer[]             @relation("Transfer_companyId")
+  approvalWorkflows     ApprovalWorkflow[]     @relation("ApprovalWorkflow_companyId")
+  damageReports         DamageReport[]         @relation("DamageReport_companyId")
+  traceabilityCodes     TraceabilityCode[]     @relation("TraceabilityCode_companyId")
+  companyMembers        CompanyMember[]        @relation("CompanyMember_companyId")
+  roles                 Role[]                 @relation("Role_companyId")
+  auditLogs             AuditLog[]             @relation("AuditLog_companyId")
+  materialDemands       MaterialDemand[]       @relation("MaterialDemand_companyId")
+  surplusAssessments    SurplusAssessment[]    @relation("SurplusAssessment_companyId")
+  suppliers             Supplier[]             @relation("Supplier_companyId")
+  purchaseRequests      PurchaseRequest[]      @relation("PurchaseRequest_companyId")
+  purchaseOrders        PurchaseOrder[]        @relation("PurchaseOrder_companyId")
+  optimizationRuns      OptimizationRun[]      @relation("OptimizationRun_companyId")
+  simulationScenarios   SimulationScenario[]   @relation("SimulationScenario_companyId")
+  analyticsSnapshots    AnalyticsSnapshot[]    @relation("AnalyticsSnapshot_companyId")
+  sustainabilityMetrics SustainabilityMetric[] @relation("SustainabilityMetric_companyId")
+  predictionRuns        PredictionRun[]        @relation("PredictionRun_companyId")
+  documentRecords       DocumentRecord[]       @relation("DocumentRecord_companyId")
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+// 2. Project
+model Project {
+  id          String        @id @default(uuid()) @db.Uuid
+  companyId   String        @db.Uuid
+  code        String        @db.VarChar(50)
+  name        String        @db.VarChar(200)
+  description String?       @db.Text
+  status      ProjectStatus
+  startDate   DateTime?     @db.Date
+  endDate     DateTime?     @db.Date
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  company               Company                @relation("Project_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  sites                 Site[]                 @relation("Site_projectId")
+  warehouses            Warehouse[]            @relation("Warehouse_projectId")
+  projectAllocations    ProjectAllocation[]    @relation("ProjectAllocation_projectId")
+  materialRequests      MaterialRequest[]      @relation("MaterialRequest_projectId")
+  roleAssignments       RoleAssignment[]       @relation("RoleAssignment_projectId")
+  materialDemands       MaterialDemand[]       @relation("MaterialDemand_projectId")
+  bOQs                  BOQ[]                  @relation("BOQ_projectId")
+  purchaseRequests      PurchaseRequest[]      @relation("PurchaseRequest_projectId")
+  purchaseOrders        PurchaseOrder[]        @relation("PurchaseOrder_projectId")
+  simulationScenarios   SimulationScenario[]   @relation("SimulationScenario_projectId")
+  analyticsSnapshots    AnalyticsSnapshot[]    @relation("AnalyticsSnapshot_projectId")
+  sustainabilityMetrics SustainabilityMetric[] @relation("SustainabilityMetric_projectId")
+  predictionRuns        PredictionRun[]        @relation("PredictionRun_projectId")
+  documentRecords       DocumentRecord[]       @relation("DocumentRecord_projectId")
+
+  @@unique([companyId, code])
+  @@index([companyId])
+}
+
+enum SiteStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// 3. Site
+model Site {
+  id        String     @id @default(uuid()) @db.Uuid
+  projectId String     @db.Uuid
+  name      String     @db.VarChar(200)
+  address   String?    @db.Text
+  status    SiteStatus
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  project            Project            @relation("Site_projectId", fields: [projectId], references: [id], onDelete: Restrict)
+  inventoryLocations InventoryLocation? @relation("InventoryLocation_siteId")
+  materialRequests   MaterialRequest[]  @relation("MaterialRequest_siteId")
+  roleAssignments    RoleAssignment[]   @relation("RoleAssignment_siteId")
+  materialDemands    MaterialDemand[]   @relation("MaterialDemand_siteId")
+
+  @@index([projectId])
+}
+
+enum WarehouseType {
+  CENTRAL
+  PROJECT
+}
+
+// 4. Warehouse
+model Warehouse {
+  id            String        @id @default(uuid()) @db.Uuid
+  companyId     String        @db.Uuid
+  projectId     String?       @db.Uuid
+  name          String        @db.VarChar(200)
+  warehouseType WarehouseType
+  address       String?       @db.Text
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  company            Company            @relation("Warehouse_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  project            Project?           @relation("Warehouse_projectId", fields: [projectId], references: [id], onDelete: Restrict)
+  inventoryLocations InventoryLocation? @relation("InventoryLocation_warehouseId")
+
+  @@index([companyId])
+  @@index([projectId])
+}
+
+// 5. InventoryLocation
+model InventoryLocation {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @db.Uuid
+  siteId      String?  @unique @db.Uuid
+  warehouseId String?  @unique @db.Uuid
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company                                Company             @relation("InventoryLocation_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  site                                   Site?               @relation("InventoryLocation_siteId", fields: [siteId], references: [id], onDelete: Restrict)
+  warehouse                              Warehouse?          @relation("InventoryLocation_warehouseId", fields: [warehouseId], references: [id], onDelete: Restrict)
+  inventoryStocks                        InventoryStock[]    @relation("InventoryStock_locationId")
+  stockMovementsViaSourceLocationId      StockMovement[]     @relation("StockMovement_sourceLocationId")
+  stockMovementsViaDestinationLocationId StockMovement[]     @relation("StockMovement_destinationLocationId")
+  transfersViaSourceLocationId           Transfer[]          @relation("Transfer_sourceLocationId")
+  transfersViaDestinationLocationId      Transfer[]          @relation("Transfer_destinationLocationId")
+  scanEvents                             ScanEvent[]         @relation("ScanEvent_locationId")
+  surplusAssessments                     SurplusAssessment[] @relation("SurplusAssessment_locationId")
+  predictionResults                      PredictionResult[]  @relation("PredictionResult_locationId")
+
+  @@index([companyId])
+}
+
+// ==========================================
+// PART 2 — MATERIALS / INVENTORY
+// ==========================================
+
+// 6. MaterialCategory
+model MaterialCategory {
+  id          String  @id @default(uuid()) @db.Uuid
+  name        String  @db.VarChar(150)
+  code        String  @unique @db.VarChar(50)
+  description String? @db.Text
+  isActive    Boolean @default(true)
+
+  categoryAttributes CategoryAttribute[] @relation("CategoryAttribute_categoryId")
+  materials          Material[]          @relation("Material_categoryId")
+}
+
+enum AttributeDataType {
+  STRING
+  NUMBER
+  BOOLEAN
+  ENUM
+}
+
+// 7. AttributeDefinition
+model AttributeDefinition {
+  id       String            @id @default(uuid()) @db.Uuid
+  code     String            @unique @db.VarChar(100)
+  name     String            @db.VarChar(150)
+  dataType AttributeDataType
+  unit     String?           @db.VarChar(30)
+
+  categoryAttributes      CategoryAttribute[]      @relation("CategoryAttribute_attributeId")
+  materialAttributeValues MaterialAttributeValue[] @relation("MaterialAttributeValue_attributeId")
+}
+
+// 8. CategoryAttribute
+model CategoryAttribute {
+  categoryId       String  @db.Uuid
+  attributeId      String  @db.Uuid
+  isRequired       Boolean @default(false)
+  isHardConstraint Boolean @default(false)
+
+  category  MaterialCategory    @relation("CategoryAttribute_categoryId", fields: [categoryId], references: [id], onDelete: Restrict)
+  attribute AttributeDefinition @relation("CategoryAttribute_attributeId", fields: [attributeId], references: [id], onDelete: Restrict)
+
+  @@id([categoryId, attributeId])
+  @@index([categoryId])
+  @@index([attributeId])
+}
+
+// 9. Material
+model Material {
+  id          String  @id @default(uuid()) @db.Uuid
+  categoryId  String  @db.Uuid
+  code        String  @unique @db.VarChar(100)
+  name        String  @db.VarChar(200)
+  baseUnit    String  @db.VarChar(30)
+  description String? @db.Text
+  isActive    Boolean @default(true)
+
+  category                MaterialCategory         @relation("Material_categoryId", fields: [categoryId], references: [id], onDelete: Restrict)
+  materialAttributeValues MaterialAttributeValue[] @relation("MaterialAttributeValue_materialId")
+  materialBatchs          MaterialBatch[]          @relation("MaterialBatch_materialId")
+  materialRequestItems    MaterialRequestItem[]    @relation("MaterialRequestItem_materialId")
+  materialDemands         MaterialDemand[]         @relation("MaterialDemand_materialId")
+  surplusAssessments      SurplusAssessment[]      @relation("SurplusAssessment_materialId")
+  bOQItems                BOQItem[]                @relation("BOQItem_materialId")
+  supplierMaterialOffers  SupplierMaterialOffer[]  @relation("SupplierMaterialOffer_materialId")
+  purchaseRequestItems    PurchaseRequestItem[]    @relation("PurchaseRequestItem_materialId")
+  purchaseOrderItems      PurchaseOrderItem[]      @relation("PurchaseOrderItem_materialId")
+  predictionResults       PredictionResult[]       @relation("PredictionResult_materialId")
+
+  @@index([categoryId])
+}
+
+// 10. MaterialAttributeValue
+model MaterialAttributeValue {
+  materialId  String @db.Uuid
+  attributeId String @db.Uuid
+  value       Json   @db.JsonB
+
+  material  Material            @relation("MaterialAttributeValue_materialId", fields: [materialId], references: [id], onDelete: Restrict)
+  attribute AttributeDefinition @relation("MaterialAttributeValue_attributeId", fields: [attributeId], references: [id], onDelete: Restrict)
+
+  @@id([materialId, attributeId])
+  @@index([materialId])
+  @@index([attributeId])
+}
+
+// 11. MaterialBatch
+model MaterialBatch {
+  id             String    @id @default(uuid()) @db.Uuid
+  materialId     String    @db.Uuid
+  batchCode      String    @db.VarChar(100)
+  supplierId     String?   @db.Uuid
+  receivedAt     DateTime?
+  manufacturedAt DateTime? @db.Date
+  expiresAt      DateTime? @db.Date
+  createdAt      DateTime  @default(now())
+
+  material          Material           @relation("MaterialBatch_materialId", fields: [materialId], references: [id], onDelete: Restrict)
+  supplier          Supplier?          @relation("MaterialBatch_supplierId", fields: [supplierId], references: [id], onDelete: Restrict)
+  inventoryStocks   InventoryStock[]   @relation("InventoryStock_batchId")
+  stockMovements    StockMovement[]    @relation("StockMovement_batchId")
+  transferItems     TransferItem[]     @relation("TransferItem_batchId")
+  traceabilityCodes TraceabilityCode[] @relation("TraceabilityCode_materialBatchId")
+
+  @@index([materialId])
+  @@index([supplierId])
+}
+
+// 12. InventoryStock
+model InventoryStock {
+  id                  String   @id @default(uuid()) @db.Uuid
+  batchId             String   @db.Uuid
+  locationId          String   @db.Uuid
+  usableQuantity      Decimal  @default(0) @db.Decimal(18, 3)
+  quarantinedQuantity Decimal  @default(0) @db.Decimal(18, 3)
+  damagedQuantity     Decimal  @default(0) @db.Decimal(18, 3)
+  updatedAt           DateTime @updatedAt
+
+  batch                MaterialBatch         @relation("InventoryStock_batchId", fields: [batchId], references: [id], onDelete: Restrict)
+  location             InventoryLocation     @relation("InventoryStock_locationId", fields: [locationId], references: [id], onDelete: Restrict)
+  projectAllocations   ProjectAllocation[]   @relation("ProjectAllocation_inventoryStockId")
+  matchCandidates      MatchCandidate[]      @relation("MatchCandidate_inventoryStockId")
+  reservations         Reservation[]         @relation("Reservation_inventoryStockId")
+  damageReports        DamageReport[]        @relation("DamageReport_inventoryStockId")
+  materialRecoverys    MaterialRecovery[]    @relation("MaterialRecovery_inventoryStockId")
+  wasteRecords         WasteRecord[]         @relation("WasteRecord_inventoryStockId")
+  traceabilityCodes    TraceabilityCode[]    @relation("TraceabilityCode_inventoryStockId")
+  inventoryInspections InventoryInspection[] @relation("InventoryInspection_inventoryStockId")
+
+  @@unique([batchId, locationId])
+  @@index([batchId])
+  @@index([locationId])
+}
+
+enum StockMovementType {
+  RECEIPT
+  ISSUE
+  TRANSFER
+  ADJUSTMENT
+  DISPOSAL
+}
+
+// 13. StockMovement
+model StockMovement {
+  id                    String            @id @default(uuid()) @db.Uuid
+  batchId               String            @db.Uuid
+  sourceLocationId      String?           @db.Uuid
+  destinationLocationId String?           @db.Uuid
+  quantity              Decimal           @db.Decimal(18, 3)
+  movementType          StockMovementType
+  referenceId           String?           @db.Uuid
+  performedById         String            @db.Uuid
+  createdAt             DateTime          @default(now())
+
+  batch               MaterialBatch      @relation("StockMovement_batchId", fields: [batchId], references: [id], onDelete: Restrict)
+  sourceLocation      InventoryLocation? @relation("StockMovement_sourceLocationId", fields: [sourceLocationId], references: [id], onDelete: Restrict)
+  destinationLocation InventoryLocation? @relation("StockMovement_destinationLocationId", fields: [destinationLocationId], references: [id], onDelete: Restrict)
+  performedBy         User               @relation("StockMovement_performedById", fields: [performedById], references: [id], onDelete: Restrict)
+
+  @@index([batchId])
+  @@index([sourceLocationId])
+  @@index([destinationLocationId])
+  @@index([performedById])
+}
+
+// 14. ProjectAllocation
+model ProjectAllocation {
+  id               String   @id @default(uuid()) @db.Uuid
+  inventoryStockId String   @db.Uuid
+  projectId        String   @db.Uuid
+  quantity         Decimal  @db.Decimal(18, 3)
+  createdAt        DateTime @default(now())
+
+  inventoryStock InventoryStock @relation("ProjectAllocation_inventoryStockId", fields: [inventoryStockId], references: [id], onDelete: Restrict)
+  project        Project        @relation("ProjectAllocation_projectId", fields: [projectId], references: [id], onDelete: Restrict)
+  reservations   Reservation[]  @relation("Reservation_projectAllocationId")
+
+  @@index([inventoryStockId])
+  @@index([projectId])
+}
+
+// ==========================================
+// PART 3 — MATCHING / RESERVATIONS / TRANSFERS
+// ==========================================
+
+enum MaterialRequestStatus {
+  DRAFT
+  SUBMITTED
+  PARTIALLY_FULFILLED
+  FULFILLED
+  CANCELLED
+}
+
+enum RequestPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+// 15. MaterialRequest
+model MaterialRequest {
+  id             String                @id @default(uuid()) @db.Uuid
+  companyId      String                @db.Uuid
+  projectId      String                @db.Uuid
+  siteId         String                @db.Uuid
+  requestedById  String                @db.Uuid
+  status         MaterialRequestStatus
+  priority       RequestPriority
+  requiredByDate DateTime?             @db.Date
+  notes          String?               @db.Text
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  company              Company               @relation("MaterialRequest_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  project              Project               @relation("MaterialRequest_projectId", fields: [projectId], references: [id], onDelete: Restrict)
+  site                 Site                  @relation("MaterialRequest_siteId", fields: [siteId], references: [id], onDelete: Restrict)
+  requestedBy          User                  @relation("MaterialRequest_requestedById", fields: [requestedById], references: [id], onDelete: Restrict)
+  materialRequestItems MaterialRequestItem[] @relation("MaterialRequestItem_requestId")
+
+  @@index([companyId])
+  @@index([projectId])
+  @@index([siteId])
+  @@index([requestedById])
+}
+
+// 16. MaterialRequestItem
+model MaterialRequestItem {
+  id                    String  @id @default(uuid()) @db.Uuid
+  requestId             String  @db.Uuid
+  materialId            String  @db.Uuid
+  requestedQuantity     Decimal @db.Decimal(18, 3)
+  unit                  String  @db.VarChar(30)
+  singleBatchOnly       Boolean @default(false)
+  technicalRequirements Json?   @db.JsonB
+  notes                 String? @db.Text
+
+  request          MaterialRequest   @relation("MaterialRequestItem_requestId", fields: [requestId], references: [id], onDelete: Restrict)
+  material         Material          @relation("MaterialRequestItem_materialId", fields: [materialId], references: [id], onDelete: Restrict)
+  matchResults     MatchResult[]     @relation("MatchResult_requestItemId")
+  reservations     Reservation[]     @relation("Reservation_requestItemId")
+  materialDemands  MaterialDemand[]  @relation("MaterialDemand_requestItemId")
+  optimizationRuns OptimizationRun[] @relation("OptimizationRun_requestItemId")
+
+  @@index([requestId])
+  @@index([materialId])
+}
+
+enum MatchStatus {
+  FULL_MATCH
+  PARTIAL_MATCH
+  NO_MATCH
+}
+
+// 17. MatchResult
+model MatchResult {
+  id                      String      @id @default(uuid()) @db.Uuid
+  requestItemId           String      @db.Uuid
+  algorithmVersion        String      @db.VarChar(50)
+  status                  MatchStatus
+  requestedQuantity       Decimal     @db.Decimal(18, 3)
+  proposedCoveredQuantity Decimal     @db.Decimal(18, 3)
+  remainingQuantity       Decimal     @db.Decimal(18, 3)
+  executedAt              DateTime
+  expiresAt               DateTime?
+
+  requestItem      MaterialRequestItem @relation("MatchResult_requestItemId", fields: [requestItemId], references: [id], onDelete: Restrict)
+  matchCandidates  MatchCandidate[]    @relation("MatchCandidate_matchResultId")
+  optimizationRuns OptimizationRun[]   @relation("OptimizationRun_matchResultId")
+
+  @@index([requestItemId])
+}
+
+// 18. MatchCandidate
+model MatchCandidate {
+  id               String  @id @default(uuid()) @db.Uuid
+  matchResultId    String  @db.Uuid
+  inventoryStockId String  @db.Uuid
+  eligibleQuantity Decimal @db.Decimal(18, 3)
+  proposedQuantity Decimal @db.Decimal(18, 3)
+  matchScore       Decimal @db.Decimal(5, 2)
+  rank             Int
+  explanation      Json?   @db.JsonB
+
+  matchResult    MatchResult    @relation("MatchCandidate_matchResultId", fields: [matchResultId], references: [id], onDelete: Restrict)
+  inventoryStock InventoryStock @relation("MatchCandidate_inventoryStockId", fields: [inventoryStockId], references: [id], onDelete: Restrict)
+
+  @@unique([matchResultId, rank])
+  @@index([matchResultId])
+  @@index([inventoryStockId])
+}
+
+enum ReservationStatus {
+  ACTIVE
+  RELEASED
+  CONSUMED
+  EXPIRED
+  CANCELLED
+}
+
+// 19. Reservation
+model Reservation {
+  id                  String            @id @default(uuid()) @db.Uuid
+  requestItemId       String            @db.Uuid
+  inventoryStockId    String            @db.Uuid
+  projectAllocationId String?           @db.Uuid
+  quantity            Decimal           @db.Decimal(18, 3)
+  status              ReservationStatus
+  reservedById        String            @db.Uuid
+  reservedAt          DateTime
+  expiresAt           DateTime?
+  releasedAt          DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  requestItem       MaterialRequestItem @relation("Reservation_requestItemId", fields: [requestItemId], references: [id], onDelete: Restrict)
+  inventoryStock    InventoryStock      @relation("Reservation_inventoryStockId", fields: [inventoryStockId], references: [id], onDelete: Restrict)
+  projectAllocation ProjectAllocation?  @relation("Reservation_projectAllocationId", fields: [projectAllocationId], references: [id], onDelete: Restrict)
+  reservedBy        User                @relation("Reservation_reservedById", fields: [reservedById], references: [id], onDelete: Restrict)
+  transferItems     TransferItem[]      @relation("TransferItem_reservationId")
+
+  @@index([requestItemId])
+  @@index([inventoryStockId])
+  @@index([projectAllocationId])
+  @@index([reservedById])
+}
+
+enum TransferStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  IN_TRANSIT
+  PARTIALLY_RECEIVED
+  COMPLETED
+  CANCELLED
+}
+
+// 20. Transfer
+model Transfer {
+  id                    String         @id @default(uuid()) @db.Uuid
+  companyId             String         @db.Uuid
+  sourceLocationId      String         @db.Uuid
+  destinationLocationId String         @db.Uuid
+  requestedById         String         @db.Uuid
+  status                TransferStatus
+  requestedAt           DateTime
+  approvedAt            DateTime?
+  dispatchedAt          DateTime?
+  completedAt           DateTime?
+  notes                 String?        @db.Text
+
+  company             Company           @relation("Transfer_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  sourceLocation      InventoryLocation @relation("Transfer_sourceLocationId", fields: [sourceLocationId], references: [id], onDelete: Restrict)
+  destinationLocation InventoryLocation @relation("Transfer_destinationLocationId", fields: [destinationLocationId], references: [id], onDelete: Restrict)
+  requestedBy         User              @relation("Transfer_requestedById", fields: [requestedById], references: [id], onDelete: Restrict)
+  transferItems       TransferItem[]    @relation("TransferItem_transferId")
+
+  @@index([companyId])
+  @@index([sourceLocationId])
+  @@index([destinationLocationId])
+  @@index([requestedById])
+}
+
+// 21. TransferItem
+model TransferItem {
+  id                       String  @id @default(uuid()) @db.Uuid
+  transferId               String  @db.Uuid
+  reservationId            String  @db.Uuid
+  batchId                  String  @db.Uuid
+  plannedQuantity          Decimal @db.Decimal(18, 3)
+  dispatchedQuantity       Decimal @default(0) @db.Decimal(18, 3)
+  receivedQuantity         Decimal @default(0) @db.Decimal(18, 3)
+  damagedInTransitQuantity Decimal @default(0) @db.Decimal(18, 3)
+  notes                    String? @db.Text
+
+  transfer    Transfer      @relation("TransferItem_transferId", fields: [transferId], references: [id], onDelete: Restrict)
+  reservation Reservation   @relation("TransferItem_reservationId", fields: [reservationId], references: [id], onDelete: Restrict)
+  batch       MaterialBatch @relation("TransferItem_batchId", fields: [batchId], references: [id], onDelete: Restrict)
+
+  @@index([transferId])
+  @@index([reservationId])
+  @@index([batchId])
+}
+
+// ==========================================
+// PART 4 — APPROVALS
+// ==========================================
+
+enum ApprovalWorkflowOperationType {
+  TRANSFER
+  PROCUREMENT
+  STOCK_ADJUSTMENT
+  DAMAGE_DISPOSAL
+  PROJECT_REALLOCATION
+}
+
+// 22. ApprovalWorkflow
+model ApprovalWorkflow {
+  id            String                        @id @default(uuid()) @db.Uuid
+  companyId     String                        @db.Uuid
+  name          String                        @db.VarChar(200)
+  operationType ApprovalWorkflowOperationType
+  isActive      Boolean                       @default(true)
+  createdAt     DateTime                      @default(now())
+  updatedAt     DateTime                      @updatedAt
+
+  company          Company           @relation("ApprovalWorkflow_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  approvalSteps    ApprovalStep[]    @relation("ApprovalStep_workflowId")
+  approvalRequests ApprovalRequest[] @relation("ApprovalRequest_workflowId")
+
+  @@index([companyId])
+}
+
+// 23. ApprovalStep
+model ApprovalStep {
+  id                   String  @id @default(uuid()) @db.Uuid
+  workflowId           String  @db.Uuid
+  stepOrder            Int
+  name                 String  @db.VarChar(150)
+  requiredPermissionId String  @db.Uuid
+  minimumApprovals     Int     @default(1)
+  isRequired           Boolean @default(true)
+
+  workflow              ApprovalWorkflow       @relation("ApprovalStep_workflowId", fields: [workflowId], references: [id], onDelete: Restrict)
+  requiredPermission    Permission             @relation("ApprovalStep_requiredPermissionId", fields: [requiredPermissionId], references: [id], onDelete: Restrict)
+  approvalDecisions     ApprovalDecision[]     @relation("ApprovalDecision_approvalStepId")
+  approvalStepInstances ApprovalStepInstance[] @relation("ApprovalStepInstance_approvalStepId")
+
+  @@unique([workflowId, stepOrder])
+  @@index([workflowId])
+  @@index([requiredPermissionId])
+}
+
+enum ApprovalRequestOperationType {
+  TRANSFER
+  PROCUREMENT
+  STOCK_ADJUSTMENT
+  DAMAGE_DISPOSAL
+  PROJECT_REALLOCATION
+}
+
+enum ApprovalRequestStatus {
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+// 24. ApprovalRequest
+model ApprovalRequest {
+  id               String                       @id @default(uuid()) @db.Uuid
+  workflowId       String                       @db.Uuid
+  requestedById    String                       @db.Uuid
+  operationType    ApprovalRequestOperationType
+  operationId      String                       @db.Uuid
+  status           ApprovalRequestStatus
+  currentStepOrder Int?
+  requestedAt      DateTime
+  completedAt      DateTime?
+  createdAt        DateTime                     @default(now())
+  updatedAt        DateTime                     @updatedAt
+
+  workflow              ApprovalWorkflow       @relation("ApprovalRequest_workflowId", fields: [workflowId], references: [id], onDelete: Restrict)
+  requestedBy           User                   @relation("ApprovalRequest_requestedById", fields: [requestedById], references: [id], onDelete: Restrict)
+  approvalDecisions     ApprovalDecision[]     @relation("ApprovalDecision_approvalRequestId")
+  approvalStepInstances ApprovalStepInstance[] @relation("ApprovalStepInstance_approvalRequestId")
+
+  @@index([workflowId])
+  @@index([requestedById])
+}
+
+enum ApprovalDecisionDecision {
+  APPROVED
+  REJECTED
+}
+
+// 25. ApprovalDecision
+model ApprovalDecision {
+  id                String                   @id @default(uuid()) @db.Uuid
+  approvalRequestId String                   @db.Uuid
+  approvalStepId    String                   @db.Uuid
+  decidedById       String                   @db.Uuid
+  decision          ApprovalDecisionDecision
+  comment           String?                  @db.Text
+  decidedAt         DateTime
+
+  approvalRequest ApprovalRequest @relation("ApprovalDecision_approvalRequestId", fields: [approvalRequestId], references: [id], onDelete: Restrict)
+  approvalStep    ApprovalStep    @relation("ApprovalDecision_approvalStepId", fields: [approvalStepId], references: [id], onDelete: Restrict)
+  decidedBy       User            @relation("ApprovalDecision_decidedById", fields: [decidedById], references: [id], onDelete: Restrict)
+
+  @@unique([approvalRequestId, approvalStepId, decidedById])
+  @@index([approvalRequestId])
+  @@index([approvalStepId])
+  @@index([decidedById])
+}
+
+enum ApprovalStepInstanceStatus {
+  WAITING
+  ACTIVE
+  APPROVED
+  REJECTED
+  SKIPPED
+}
+
+// 26. ApprovalStepInstance
+model ApprovalStepInstance {
+  id                String                     @id @default(uuid()) @db.Uuid
+  approvalRequestId String                     @db.Uuid
+  approvalStepId    String                     @db.Uuid
+  stepOrder         Int
+  requiredApprovals Int
+  status            ApprovalStepInstanceStatus
+  activatedAt       DateTime?
+  completedAt       DateTime?
+
+  approvalRequest ApprovalRequest @relation("ApprovalStepInstance_approvalRequestId", fields: [approvalRequestId], references: [id], onDelete: Restrict)
+  approvalStep    ApprovalStep    @relation("ApprovalStepInstance_approvalStepId", fields: [approvalStepId], references: [id], onDelete: Restrict)
+
+  @@unique([approvalRequestId, stepOrder])
+  @@index([approvalRequestId])
+  @@index([approvalStepId])
+}
+
+// ==========================================
+// PART 5 — DAMAGE / WASTE / TRACEABILITY
+// ==========================================
+
+enum DamageReportReason {
+  TRANSPORT_DAMAGE
+  STORAGE_DAMAGE
+  EXPIRED
+  DEFECTIVE
+  ACCIDENT
+  OTHER
+}
+
+enum DamageReportStatus {
+  REPORTED
+  UNDER_INSPECTION
+  ASSESSED
+  RESOLVED
+  CANCELLED
+}
+
+// 27. DamageReport
+model DamageReport {
+  id               String             @id @default(uuid()) @db.Uuid
+  companyId        String             @db.Uuid
+  inventoryStockId String             @db.Uuid
+  reportedById     String             @db.Uuid
+  reportedQuantity Decimal            @db.Decimal(18, 3)
+  reason           DamageReportReason
+  description      String?            @db.Text
+  status           DamageReportStatus
+  reportedAt       DateTime
+  updatedAt        DateTime           @updatedAt
+
+  company           Company            @relation("DamageReport_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  inventoryStock    InventoryStock     @relation("DamageReport_inventoryStockId", fields: [inventoryStockId], references: [id], onDelete: Restrict)
+  reportedBy        User               @relation("DamageReport_reportedById", fields: [reportedById], references: [id], onDelete: Restrict)
+  damageAssessments DamageAssessment[] @relation("DamageAssessment_damageReportId")
+
+  @@index([companyId])
+  @@index([inventoryStockId])
+  @@index([reportedById])
+}
+
+enum DamageAssessmentCondition {
+  USABLE
+  RECOVERABLE
+  RECYCLABLE
+  UNUSABLE
+}
+
+// 28. DamageAssessment
+model DamageAssessment {
+  id               String                    @id @default(uuid()) @db.Uuid
+  damageReportId   String                    @db.Uuid
+  assessedById     String                    @db.Uuid
+  assessedQuantity Decimal                   @db.Decimal(18, 3)
+  condition        DamageAssessmentCondition
+  findings         String?                   @db.Text
+  recommendations  String?                   @db.Text
+  assessedAt       DateTime
+
+  damageReport      DamageReport       @relation("DamageAssessment_damageReportId", fields: [damageReportId], references: [id], onDelete: Restrict)
+  assessedBy        User               @relation("DamageAssessment_assessedById", fields: [assessedById], references: [id], onDelete: Restrict)
+  materialRecoverys MaterialRecovery[] @relation("MaterialRecovery_damageAssessmentId")
+  wasteRecords      WasteRecord[]      @relation("WasteRecord_damageAssessmentId")
+
+  @@index([damageReportId])
+  @@index([assessedById])
+}
+
+enum MaterialRecoveryRecoveryType {
+  RETURN_TO_STOCK
+  ALTERNATIVE_USE
+  REPAIR
+  REPROCESS
+}
+
+enum MaterialRecoveryStatus {
+  PROPOSED
+  APPROVED
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+// 29. MaterialRecovery
+model MaterialRecovery {
+  id                 String                       @id @default(uuid()) @db.Uuid
+  damageAssessmentId String                       @db.Uuid
+  inventoryStockId   String                       @db.Uuid
+  recoveryType       MaterialRecoveryRecoveryType
+  quantity           Decimal                      @db.Decimal(18, 3)
+  status             MaterialRecoveryStatus
+  approvedById       String?                      @db.Uuid
+  recoveryCost       Decimal                      @default(0) @db.Decimal(18, 2)
+  notes              String?                      @db.Text
+  completedAt        DateTime?
+  createdAt          DateTime                     @default(now())
+
+  damageAssessment DamageAssessment @relation("MaterialRecovery_damageAssessmentId", fields: [damageAssessmentId], references: [id], onDelete: Restrict)
+  inventoryStock   InventoryStock   @relation("MaterialRecovery_inventoryStockId", fields: [inventoryStockId], references: [id], onDelete: Restrict)
+  approvedBy       User?            @relation("MaterialRecovery_approvedById", fields: [approvedById], references: [id], onDelete: Restrict)
+
+  @@index([damageAssessmentId])
+  @@index([inventoryStockId])
+  @@index([approvedById])
+}
+
+enum WasteRecordWasteType {
+  RECYCLING
+  DISPOSAL
+}
+
+enum WasteRecordStatus {
+  PLANNED
+  PENDING_APPROVAL
+  APPROVED
+  COMPLETED
+  CANCELLED
+}
+
+// 30. WasteRecord
+model WasteRecord {
+  id                 String               @id @default(uuid()) @db.Uuid
+  damageAssessmentId String?              @db.Uuid
+  inventoryStockId   String               @db.Uuid
+  wasteType          WasteRecordWasteType
+  quantity           Decimal              @db.Decimal(18, 3)
+  status             WasteRecordStatus
+  reason             String?              @db.Text
+  handlingCost       Decimal              @default(0) @db.Decimal(18, 2)
+  recordedById       String               @db.Uuid
+  completedAt        DateTime?
+  createdAt          DateTime             @default(now())
+
+  damageAssessment DamageAssessment? @relation("WasteRecord_damageAssessmentId", fields: [damageAssessmentId], references: [id], onDelete: Restrict)
+  inventoryStock   InventoryStock    @relation("WasteRecord_inventoryStockId", fields: [inventoryStockId], references: [id], onDelete: Restrict)
+  recordedBy       User              @relation("WasteRecord_recordedById", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@index([damageAssessmentId])
+  @@index([inventoryStockId])
+  @@index([recordedById])
+}
+
+enum TraceabilityCodeCodeType {
+  QR
+  BARCODE
+}
+
+enum TraceabilityCodeStatus {
+  ACTIVE
+  REVOKED
+}
+
+// 31. TraceabilityCode
+model TraceabilityCode {
+  id               String                   @id @default(uuid()) @db.Uuid
+  companyId        String                   @db.Uuid
+  materialBatchId  String?                  @db.Uuid
+  inventoryStockId String?                  @db.Uuid
+  codeValue        String                   @db.VarChar(255)
+  codeType         TraceabilityCodeCodeType
+  status           TraceabilityCodeStatus
+  generatedAt      DateTime
+  revokedAt        DateTime?
+
+  company        Company         @relation("TraceabilityCode_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  materialBatch  MaterialBatch?  @relation("TraceabilityCode_materialBatchId", fields: [materialBatchId], references: [id], onDelete: Restrict)
+  inventoryStock InventoryStock? @relation("TraceabilityCode_inventoryStockId", fields: [inventoryStockId], references: [id], onDelete: Restrict)
+  scanEvents     ScanEvent[]     @relation("ScanEvent_traceabilityCodeId")
+
+  @@index([companyId])
+  @@index([materialBatchId])
+  @@index([inventoryStockId])
+}
+
+enum ScanEventScanType {
+  LOOKUP
+  RECEIPT
+  DISPATCH
+  TRANSFER
+  INSPECTION
+  INVENTORY_CHECK
+}
+
+enum ScanEventResult {
+  SUCCESS
+  DENIED
+  INVALID
+}
+
+// 32. ScanEvent
+model ScanEvent {
+  id                 String            @id @default(uuid()) @db.Uuid
+  traceabilityCodeId String            @db.Uuid
+  scannedById        String            @db.Uuid
+  locationId         String?           @db.Uuid
+  scanType           ScanEventScanType
+  result             ScanEventResult
+  scannedAt          DateTime
+  notes              String?           @db.Text
+
+  traceabilityCode TraceabilityCode   @relation("ScanEvent_traceabilityCodeId", fields: [traceabilityCodeId], references: [id], onDelete: Restrict)
+  scannedBy        User               @relation("ScanEvent_scannedById", fields: [scannedById], references: [id], onDelete: Restrict)
+  location         InventoryLocation? @relation("ScanEvent_locationId", fields: [locationId], references: [id], onDelete: Restrict)
+
+  @@index([traceabilityCodeId])
+  @@index([scannedById])
+  @@index([locationId])
+}
+
+enum InventoryInspectionInspectionType {
+  ROUTINE
+  DAMAGE_CHECK
+  STOCK_COUNT
+  RECEIPT_CHECK
+}
+
+enum InventoryInspectionStatus {
+  PENDING
+  COMPLETED
+  REQUIRES_REVIEW
+}
+
+// 33. InventoryInspection
+model InventoryInspection {
+  id               String                            @id @default(uuid()) @db.Uuid
+  inventoryStockId String                            @db.Uuid
+  inspectedById    String                            @db.Uuid
+  inspectionType   InventoryInspectionInspectionType
+  recordedQuantity Decimal?                          @db.Decimal(18, 3)
+  observedQuantity Decimal?                          @db.Decimal(18, 3)
+  conditionNotes   String?                           @db.Text
+  status           InventoryInspectionStatus
+  inspectedAt      DateTime
+  createdAt        DateTime                          @default(now())
+
+  inventoryStock InventoryStock @relation("InventoryInspection_inventoryStockId", fields: [inventoryStockId], references: [id], onDelete: Restrict)
+  inspectedBy    User           @relation("InventoryInspection_inspectedById", fields: [inspectedById], references: [id], onDelete: Restrict)
+
+  @@index([inventoryStockId])
+  @@index([inspectedById])
+}
+
+// ==========================================
+// PART 6 — USERS / RBAC / AUDIT
+// ==========================================
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// 34. User
+model User {
+  id              String     @id @default(uuid()) @db.Uuid
+  email           String     @unique @db.VarChar(255)
+  passwordHash    String     @db.VarChar(255)
+  firstName       String     @db.VarChar(100)
+  lastName        String     @db.VarChar(100)
+  phone           String?    @db.VarChar(30)
+  status          UserStatus
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  stockMovements       StockMovement[]       @relation("StockMovement_performedById")
+  materialRequests     MaterialRequest[]     @relation("MaterialRequest_requestedById")
+  reservations         Reservation[]         @relation("Reservation_reservedById")
+  transfers            Transfer[]            @relation("Transfer_requestedById")
+  approvalRequests     ApprovalRequest[]     @relation("ApprovalRequest_requestedById")
+  approvalDecisions    ApprovalDecision[]    @relation("ApprovalDecision_decidedById")
+  damageReports        DamageReport[]        @relation("DamageReport_reportedById")
+  damageAssessments    DamageAssessment[]    @relation("DamageAssessment_assessedById")
+  materialRecoverys    MaterialRecovery[]    @relation("MaterialRecovery_approvedById")
+  wasteRecords         WasteRecord[]         @relation("WasteRecord_recordedById")
+  scanEvents           ScanEvent[]           @relation("ScanEvent_scannedById")
+  inventoryInspections InventoryInspection[] @relation("InventoryInspection_inspectedById")
+  companyMembers       CompanyMember[]       @relation("CompanyMember_userId")
+  roleAssignments      RoleAssignment[]      @relation("RoleAssignment_assignedById")
+  auditLogs            AuditLog[]            @relation("AuditLog_actorUserId")
+  bOQs                 BOQ[]                 @relation("BOQ_preparedById")
+  purchaseRequests     PurchaseRequest[]     @relation("PurchaseRequest_requestedById")
+  simulationScenarios  SimulationScenario[]  @relation("SimulationScenario_createdById")
+  anomalyRecords       AnomalyRecord[]       @relation("AnomalyRecord_reviewedById")
+  supplierEvaluations  SupplierEvaluation[]  @relation("SupplierEvaluation_evaluatedById")
+  documentRecords      DocumentRecord[]      @relation("DocumentRecord_uploadedById")
+}
+
+enum CompanyMemberStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+// 35. CompanyMember
+model CompanyMember {
+  id        String              @id @default(uuid()) @db.Uuid
+  companyId String              @db.Uuid
+  userId    String              @db.Uuid
+  status    CompanyMemberStatus
+  joinedAt  DateTime?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  company         Company          @relation("CompanyMember_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  user            User             @relation("CompanyMember_userId", fields: [userId], references: [id], onDelete: Restrict)
+  roleAssignments RoleAssignment[] @relation("RoleAssignment_companyMemberId")
+
+  @@unique([companyId, userId])
+  @@index([companyId])
+  @@index([userId])
+}
+
+// 36. Role
+model Role {
+  id           String   @id @default(uuid()) @db.Uuid
+  companyId    String   @db.Uuid
+  name         String   @db.VarChar(100)
+  code         String   @db.VarChar(100)
+  description  String?  @db.Text
+  isSystemRole Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company         Company          @relation("Role_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  rolePermissions RolePermission[] @relation("RolePermission_roleId")
+  roleAssignments RoleAssignment[] @relation("RoleAssignment_roleId")
+
+  @@unique([companyId, code])
+  @@index([companyId])
+}
+
+// 37. Permission
+model Permission {
+  id          String  @id @default(uuid()) @db.Uuid
+  code        String  @unique @db.VarChar(150)
+  resource    String  @db.VarChar(100)
+  action      String  @db.VarChar(100)
+  description String? @db.Text
+  isActive    Boolean @default(true)
+
+  approvalSteps   ApprovalStep[]   @relation("ApprovalStep_requiredPermissionId")
+  rolePermissions RolePermission[] @relation("RolePermission_permissionId")
+}
+
+// 38. RolePermission
+model RolePermission {
+  roleId       String   @db.Uuid
+  permissionId String   @db.Uuid
+  createdAt    DateTime @default(now())
+
+  role       Role       @relation("RolePermission_roleId", fields: [roleId], references: [id], onDelete: Restrict)
+  permission Permission @relation("RolePermission_permissionId", fields: [permissionId], references: [id], onDelete: Restrict)
+
+  @@id([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+enum RoleAssignmentScopeType {
+  COMPANY
+  PROJECT
+  SITE
+}
+
+// 39. RoleAssignment
+model RoleAssignment {
+  id              String                  @id @default(uuid()) @db.Uuid
+  companyMemberId String                  @db.Uuid
+  roleId          String                  @db.Uuid
+  scopeType       RoleAssignmentScopeType
+  projectId       String?                 @db.Uuid
+  siteId          String?                 @db.Uuid
+  assignedById    String                  @db.Uuid
+  assignedAt      DateTime
+  expiresAt       DateTime?
+  isActive        Boolean                 @default(true)
+
+  companyMember CompanyMember @relation("RoleAssignment_companyMemberId", fields: [companyMemberId], references: [id], onDelete: Restrict)
+  role          Role          @relation("RoleAssignment_roleId", fields: [roleId], references: [id], onDelete: Restrict)
+  project       Project?      @relation("RoleAssignment_projectId", fields: [projectId], references: [id], onDelete: Restrict)
+  site          Site?         @relation("RoleAssignment_siteId", fields: [siteId], references: [id], onDelete: Restrict)
+  assignedBy    User          @relation("RoleAssignment_assignedById", fields: [assignedById], references: [id], onDelete: Restrict)
+
+  @@index([companyMemberId])
+  @@index([roleId])
+  @@index([projectId])
+  @@index([siteId])
+  @@index([assignedById])
+}
+
+// 40. AuditLog
+model AuditLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  companyId      String?  @db.Uuid
+  actorUserId    String?  @db.Uuid
+  action         String   @db.VarChar(150)
+  entityType     String   @db.VarChar(100)
+  entityId       String?  @db.Uuid
+  previousValues Json?    @db.JsonB
+  newValues      Json?    @db.JsonB
+  ipAddress      String?  @db.VarChar(45)
+  occurredAt     DateTime
+
+  company   Company? @relation("AuditLog_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  actorUser User?    @relation("AuditLog_actorUserId", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([companyId])
+  @@index([actorUserId])
+}
+
+// ==========================================
+// PART 7 — DEMAND / PROCUREMENT / OPTIMIZATION
+// ==========================================
+
+enum MaterialDemandSource {
+  BOQ
+  MATERIAL_REQUEST
+  FORECAST
+  MANUAL
+}
+
+enum MaterialDemandStatus {
+  OPEN
+  PARTIALLY_FULFILLED
+  FULFILLED
+  CANCELLED
+}
+
+// 41. MaterialDemand
+model MaterialDemand {
+  id                String               @id @default(uuid()) @db.Uuid
+  companyId         String               @db.Uuid
+  projectId         String               @db.Uuid
+  siteId            String?              @db.Uuid
+  materialId        String               @db.Uuid
+  requestItemId     String?              @db.Uuid
+  requiredQuantity  Decimal              @db.Decimal(18, 3)
+  fulfilledQuantity Decimal              @default(0) @db.Decimal(18, 3)
+  requiredByDate    DateTime?            @db.Date
+  source            MaterialDemandSource
+  status            MaterialDemandStatus
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  company              Company               @relation("MaterialDemand_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  project              Project               @relation("MaterialDemand_projectId", fields: [projectId], references: [id], onDelete: Restrict)
+  site                 Site?                 @relation("MaterialDemand_siteId", fields: [siteId], references: [id], onDelete: Restrict)
+  material             Material              @relation("MaterialDemand_materialId", fields: [materialId], references: [id], onDelete: Restrict)
+  requestItem          MaterialRequestItem?  @relation("MaterialDemand_requestItemId", fields: [requestItemId], references: [id], onDelete: Restrict)
+  purchaseRequestItems PurchaseRequestItem[] @relation("PurchaseRequestItem_demandId")
+
+  @@index([companyId])
+  @@index([projectId])
+  @@index([siteId])
+  @@index([materialId])
+  @@index([requestItemId])
+}
+
+// 42. SurplusAssessment
+model SurplusAssessment {
+  id                  String   @id @default(uuid()) @db.Uuid
+  companyId           String   @db.Uuid
+  materialId          String   @db.Uuid
+  locationId          String   @db.Uuid
+  availableQuantity   Decimal  @db.Decimal(18, 3)
+  projectedDemand     Decimal  @db.Decimal(18, 3)
+  safetyStock         Decimal  @default(0) @db.Decimal(18, 3)
+  surplusQuantity     Decimal  @default(0) @db.Decimal(18, 3)
+  shortageQuantity    Decimal  @default(0) @db.Decimal(18, 3)
+  assessmentDate      DateTime
+  planningHorizonDays Int
+
+  company  Company           @relation("SurplusAssessment_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  material Material          @relation("SurplusAssessment_materialId", fields: [materialId], references: [id], onDelete: Restrict)
+  location InventoryLocation @relation("SurplusAssessment_locationId", fields: [locationId], references: [id], onDelete: Restrict)
+
+  @@index([companyId])
+  @@index([materialId])
+  @@index([locationId])
+}
+
+enum BOQStatus {
+  DRAFT
+  APPROVED
+  SUPERSEDED
+  ARCHIVED
+}
+
+// 43. BOQ
+model BOQ {
+  id           String    @id @default(uuid()) @db.Uuid
+  projectId    String    @db.Uuid
+  code         String    @db.VarChar(100)
+  title        String    @db.VarChar(200)
+  version      Int
+  status       BOQStatus
+  preparedById String    @db.Uuid
+  approvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  project    Project   @relation("BOQ_projectId", fields: [projectId], references: [id], onDelete: Restrict)
+  preparedBy User      @relation("BOQ_preparedById", fields: [preparedById], references: [id], onDelete: Restrict)
+  bOQItems   BOQItem[] @relation("BOQItem_boqId")
+
+  @@unique([projectId, code, version])
+  @@index([projectId])
+  @@index([preparedById])
+}
+
+// 44. BOQItem
+model BOQItem {
+  id                String   @id @default(uuid()) @db.Uuid
+  boqId             String   @db.Uuid
+  itemCode          String   @db.VarChar(100)
+  description       String   @db.Text
+  materialId        String?  @db.Uuid
+  quantity          Decimal  @db.Decimal(18, 3)
+  unit              String   @db.VarChar(30)
+  estimatedUnitCost Decimal? @db.Decimal(18, 2)
+
+  boq      BOQ       @relation("BOQItem_boqId", fields: [boqId], references: [id], onDelete: Restrict)
+  material Material? @relation("BOQItem_materialId", fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@unique([boqId, itemCode])
+  @@index([boqId])
+  @@index([materialId])
+}
+
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+// 45. Supplier
+model Supplier {
+  id           String         @id @default(uuid()) @db.Uuid
+  companyId    String         @db.Uuid
+  name         String         @db.VarChar(200)
+  contactEmail String?        @db.VarChar(255)
+  contactPhone String?        @db.VarChar(30)
+  address      String?        @db.Text
+  status       SupplierStatus
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  company                Company                 @relation("Supplier_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  materialBatchs         MaterialBatch[]         @relation("MaterialBatch_supplierId")
+  supplierMaterialOffers SupplierMaterialOffer[] @relation("SupplierMaterialOffer_supplierId")
+  purchaseOrders         PurchaseOrder[]         @relation("PurchaseOrder_supplierId")
+  supplierEvaluations    SupplierEvaluation[]    @relation("SupplierEvaluation_supplierId")
+
+  @@index([companyId])
+}
+
+// 46. SupplierMaterialOffer
+model SupplierMaterialOffer {
+  id                    String    @id @default(uuid()) @db.Uuid
+  supplierId            String    @db.Uuid
+  materialId            String    @db.Uuid
+  unitPrice             Decimal   @db.Decimal(18, 2)
+  currencyCode          String    @db.Char(3)
+  minimumOrderQuantity  Decimal   @default(0) @db.Decimal(18, 3)
+  estimatedLeadTimeDays Int?
+  validFrom             DateTime? @db.Date
+  validUntil            DateTime? @db.Date
+  isActive              Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+
+  supplier Supplier @relation("SupplierMaterialOffer_supplierId", fields: [supplierId], references: [id], onDelete: Restrict)
+  material Material @relation("SupplierMaterialOffer_materialId", fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@index([supplierId])
+  @@index([materialId])
+}
+
+enum PurchaseRequestStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  ORDERED
+  CANCELLED
+}
+
+// 47. PurchaseRequest
+model PurchaseRequest {
+  id             String                @id @default(uuid()) @db.Uuid
+  companyId      String                @db.Uuid
+  projectId      String                @db.Uuid
+  requestedById  String                @db.Uuid
+  status         PurchaseRequestStatus
+  requiredByDate DateTime?             @db.Date
+  justification  String?               @db.Text
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  company              Company               @relation("PurchaseRequest_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  project              Project               @relation("PurchaseRequest_projectId", fields: [projectId], references: [id], onDelete: Restrict)
+  requestedBy          User                  @relation("PurchaseRequest_requestedById", fields: [requestedById], references: [id], onDelete: Restrict)
+  purchaseRequestItems PurchaseRequestItem[] @relation("PurchaseRequestItem_purchaseRequestId")
+
+  @@index([companyId])
+  @@index([projectId])
+  @@index([requestedById])
+}
+
+// 48. PurchaseRequestItem
+model PurchaseRequestItem {
+  id                String   @id @default(uuid()) @db.Uuid
+  purchaseRequestId String   @db.Uuid
+  materialId        String   @db.Uuid
+  demandId          String?  @db.Uuid
+  requestedQuantity Decimal  @db.Decimal(18, 3)
+  unit              String   @db.VarChar(30)
+  estimatedUnitCost Decimal? @db.Decimal(18, 2)
+  notes             String?  @db.Text
+
+  purchaseRequest    PurchaseRequest     @relation("PurchaseRequestItem_purchaseRequestId", fields: [purchaseRequestId], references: [id], onDelete: Restrict)
+  material           Material            @relation("PurchaseRequestItem_materialId", fields: [materialId], references: [id], onDelete: Restrict)
+  demand             MaterialDemand?     @relation("PurchaseRequestItem_demandId", fields: [demandId], references: [id], onDelete: Restrict)
+  purchaseOrderItems PurchaseOrderItem[] @relation("PurchaseOrderItem_purchaseRequestItemId")
+
+  @@index([purchaseRequestId])
+  @@index([materialId])
+  @@index([demandId])
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+// 49. PurchaseOrder
+model PurchaseOrder {
+  id                   String              @id @default(uuid()) @db.Uuid
+  companyId            String              @db.Uuid
+  supplierId           String              @db.Uuid
+  projectId            String              @db.Uuid
+  orderNumber          String              @db.VarChar(100)
+  status               PurchaseOrderStatus
+  currencyCode         String              @db.Char(3)
+  issuedAt             DateTime?
+  expectedDeliveryDate DateTime?           @db.Date
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  company            Company             @relation("PurchaseOrder_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  supplier           Supplier            @relation("PurchaseOrder_supplierId", fields: [supplierId], references: [id], onDelete: Restrict)
+  project            Project             @relation("PurchaseOrder_projectId", fields: [projectId], references: [id], onDelete: Restrict)
+  purchaseOrderItems PurchaseOrderItem[] @relation("PurchaseOrderItem_purchaseOrderId")
+
+  @@unique([companyId, orderNumber])
+  @@index([companyId])
+  @@index([supplierId])
+  @@index([projectId])
+}
+
+// 50. PurchaseOrderItem
+model PurchaseOrderItem {
+  id                    String  @id @default(uuid()) @db.Uuid
+  purchaseOrderId       String  @db.Uuid
+  purchaseRequestItemId String? @db.Uuid
+  materialId            String  @db.Uuid
+  orderedQuantity       Decimal @db.Decimal(18, 3)
+  receivedQuantity      Decimal @default(0) @db.Decimal(18, 3)
+  unitPrice             Decimal @db.Decimal(18, 2)
+  unit                  String  @db.VarChar(30)
+
+  purchaseOrder       PurchaseOrder        @relation("PurchaseOrderItem_purchaseOrderId", fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  purchaseRequestItem PurchaseRequestItem? @relation("PurchaseOrderItem_purchaseRequestItemId", fields: [purchaseRequestItemId], references: [id], onDelete: Restrict)
+  material            Material             @relation("PurchaseOrderItem_materialId", fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@index([purchaseOrderId])
+  @@index([purchaseRequestItemId])
+  @@index([materialId])
+}
+
+enum OptimizationRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum OptimizationRunObjective {
+  MINIMUM_COST
+  BALANCED
+}
+
+// 51. OptimizationRun
+model OptimizationRun {
+  id               String                   @id @default(uuid()) @db.Uuid
+  companyId        String                   @db.Uuid
+  requestItemId    String                   @db.Uuid
+  matchResultId    String?                  @db.Uuid
+  algorithmVersion String                   @db.VarChar(50)
+  status           OptimizationRunStatus
+  objective        OptimizationRunObjective
+  currencyCode     String                   @db.Char(3)
+  startedAt        DateTime
+  completedAt      DateTime?
+  parameters       Json?                    @db.JsonB
+
+  company             Company              @relation("OptimizationRun_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  requestItem         MaterialRequestItem  @relation("OptimizationRun_requestItemId", fields: [requestItemId], references: [id], onDelete: Restrict)
+  matchResult         MatchResult?         @relation("OptimizationRun_matchResultId", fields: [matchResultId], references: [id], onDelete: Restrict)
+  optimizationOptions OptimizationOption[] @relation("OptimizationOption_optimizationRunId")
+
+  @@index([companyId])
+  @@index([requestItemId])
+  @@index([matchResultId])
+}
+
+enum OptimizationOptionOptionType {
+  TRANSFER
+  PURCHASE
+  MIXED
+}
+
+// 52. OptimizationOption
+model OptimizationOption {
+  id                    String                       @id @default(uuid()) @db.Uuid
+  optimizationRunId     String                       @db.Uuid
+  optionType            OptimizationOptionOptionType
+  totalCost             Decimal                      @db.Decimal(18, 2)
+  transportCost         Decimal                      @default(0) @db.Decimal(18, 2)
+  purchaseCost          Decimal                      @default(0) @db.Decimal(18, 2)
+  estimatedLeadTimeDays Int?
+  coveredQuantity       Decimal                      @db.Decimal(18, 3)
+  remainingQuantity     Decimal                      @db.Decimal(18, 3)
+  rank                  Int
+  isRecommended         Boolean                      @default(false)
+  details               Json?                        @db.JsonB
+
+  optimizationRun OptimizationRun @relation("OptimizationOption_optimizationRunId", fields: [optimizationRunId], references: [id], onDelete: Restrict)
+
+  @@unique([optimizationRunId, rank])
+  @@index([optimizationRunId])
+}
+
+// ==========================================
+// PART 8 — SIMULATION / ANALYTICS / PREDICTION
+// ==========================================
+
+enum SimulationScenarioStatus {
+  DRAFT
+  READY
+  RUNNING
+  COMPLETED
+  FAILED
+  ARCHIVED
+}
+
+// 53. SimulationScenario
+model SimulationScenario {
+  id           String                   @id @default(uuid()) @db.Uuid
+  companyId    String                   @db.Uuid
+  projectId    String?                  @db.Uuid
+  createdById  String                   @db.Uuid
+  name         String                   @db.VarChar(200)
+  description  String?                  @db.Text
+  status       SimulationScenarioStatus
+  baselineDate DateTime
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  company        Company         @relation("SimulationScenario_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  project        Project?        @relation("SimulationScenario_projectId", fields: [projectId], references: [id], onDelete: Restrict)
+  createdBy      User            @relation("SimulationScenario_createdById", fields: [createdById], references: [id], onDelete: Restrict)
+  simulationRuns SimulationRun[] @relation("SimulationRun_scenarioId")
+
+  @@index([companyId])
+  @@index([projectId])
+  @@index([createdById])
+}
+
+enum SimulationRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+// 54. SimulationRun
+model SimulationRun {
+  id               String              @id @default(uuid()) @db.Uuid
+  scenarioId       String              @db.Uuid
+  algorithmVersion String              @db.VarChar(50)
+  status           SimulationRunStatus
+  startedAt        DateTime
+  completedAt      DateTime?
+  inputSnapshot    Json                @db.JsonB
+  parameters       Json                @db.JsonB
+  resultSummary    Json?               @db.JsonB
+  errorMessage     String?             @db.Text
+
+  scenario           SimulationScenario  @relation("SimulationRun_scenarioId", fields: [scenarioId], references: [id], onDelete: Restrict)
+  simulationOutcomes SimulationOutcome[] @relation("SimulationOutcome_simulationRunId")
+
+  @@index([scenarioId])
+}
+
+enum SimulationOutcomeOutcomeType {
+  COST
+  TIME
+  MATERIAL_USAGE
+  WASTE
+  RESOURCE_ALLOCATION
+}
+
+// 55. SimulationOutcome
+model SimulationOutcome {
+  id              String                       @id @default(uuid()) @db.Uuid
+  simulationRunId String                       @db.Uuid
+  outcomeType     SimulationOutcomeOutcomeType
+  metricName      String                       @db.VarChar(150)
+  metricValue     Decimal                      @db.Decimal(18, 4)
+  unit            String?                      @db.VarChar(30)
+  details         Json?                        @db.JsonB
+
+  simulationRun SimulationRun @relation("SimulationOutcome_simulationRunId", fields: [simulationRunId], references: [id], onDelete: Restrict)
+
+  @@index([simulationRunId])
+}
+
+// 56. AnalyticsSnapshot
+model AnalyticsSnapshot {
+  id           String   @id @default(uuid()) @db.Uuid
+  companyId    String   @db.Uuid
+  projectId    String?  @db.Uuid
+  metricCode   String   @db.VarChar(150)
+  metricValue  Decimal  @db.Decimal(18, 4)
+  metricUnit   String?  @db.VarChar(30)
+  periodStart  DateTime
+  periodEnd    DateTime
+  calculatedAt DateTime
+  metadata     Json?    @db.JsonB
+
+  company Company  @relation("AnalyticsSnapshot_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  project Project? @relation("AnalyticsSnapshot_projectId", fields: [projectId], references: [id], onDelete: Restrict)
+
+  @@index([companyId])
+  @@index([projectId])
+}
+
+enum SustainabilityMetricMetricType {
+  WASTE_REDUCTION
+  MATERIAL_REUSE
+  RECYCLING
+  TRANSPORT_EMISSIONS
+}
+
+// 57. SustainabilityMetric
+model SustainabilityMetric {
+  id                String                         @id @default(uuid()) @db.Uuid
+  companyId         String                         @db.Uuid
+  projectId         String?                        @db.Uuid
+  metricType        SustainabilityMetricMetricType
+  value             Decimal                        @db.Decimal(18, 4)
+  unit              String                         @db.VarChar(30)
+  calculationMethod String                         @db.VarChar(200)
+  periodStart       DateTime
+  periodEnd         DateTime
+  calculatedAt      DateTime
+  metadata          Json?                          @db.JsonB
+
+  company Company  @relation("SustainabilityMetric_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  project Project? @relation("SustainabilityMetric_projectId", fields: [projectId], references: [id], onDelete: Restrict)
+
+  @@index([companyId])
+  @@index([projectId])
+}
+
+enum PredictionRunPredictionType {
+  DEMAND_FORECAST
+  SHORTAGE_RISK
+  ANOMALY_DETECTION
+}
+
+enum PredictionRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+// 58. PredictionRun
+model PredictionRun {
+  id               String                      @id @default(uuid()) @db.Uuid
+  companyId        String                      @db.Uuid
+  projectId        String?                     @db.Uuid
+  modelName        String                      @db.VarChar(150)
+  modelVersion     String                      @db.VarChar(50)
+  predictionType   PredictionRunPredictionType
+  status           PredictionRunStatus
+  inputPeriodStart DateTime?
+  inputPeriodEnd   DateTime?
+  parameters       Json?                       @db.JsonB
+  startedAt        DateTime
+  completedAt      DateTime?
+
+  company           Company            @relation("PredictionRun_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  project           Project?           @relation("PredictionRun_projectId", fields: [projectId], references: [id], onDelete: Restrict)
+  predictionResults PredictionResult[] @relation("PredictionResult_predictionRunId")
+  anomalyRecords    AnomalyRecord[]    @relation("AnomalyRecord_predictionRunId")
+
+  @@index([companyId])
+  @@index([projectId])
+}
+
+// 59. PredictionResult
+model PredictionResult {
+  id              String    @id @default(uuid()) @db.Uuid
+  predictionRunId String    @db.Uuid
+  materialId      String?   @db.Uuid
+  locationId      String?   @db.Uuid
+  predictedValue  Decimal   @db.Decimal(18, 4)
+  unit            String    @db.VarChar(30)
+  forecastDate    DateTime? @db.Date
+  confidenceScore Decimal?  @db.Decimal(5, 4)
+  details         Json?     @db.JsonB
+
+  predictionRun PredictionRun      @relation("PredictionResult_predictionRunId", fields: [predictionRunId], references: [id], onDelete: Restrict)
+  material      Material?          @relation("PredictionResult_materialId", fields: [materialId], references: [id], onDelete: Restrict)
+  location      InventoryLocation? @relation("PredictionResult_locationId", fields: [locationId], references: [id], onDelete: Restrict)
+
+  @@index([predictionRunId])
+  @@index([materialId])
+  @@index([locationId])
+}
+
+enum AnomalyRecordSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AnomalyRecordStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+// 60. AnomalyRecord
+model AnomalyRecord {
+  id              String                @id @default(uuid()) @db.Uuid
+  predictionRunId String                @db.Uuid
+  entityType      String                @db.VarChar(100)
+  entityId        String                @db.Uuid
+  anomalyType     String                @db.VarChar(150)
+  severity        AnomalyRecordSeverity
+  anomalyScore    Decimal?              @db.Decimal(5, 4)
+  explanation     String?               @db.Text
+  status          AnomalyRecordStatus
+  detectedAt      DateTime
+  reviewedById    String?               @db.Uuid
+  reviewedAt      DateTime?
+
+  predictionRun PredictionRun @relation("AnomalyRecord_predictionRunId", fields: [predictionRunId], references: [id], onDelete: Restrict)
+  reviewedBy    User?         @relation("AnomalyRecord_reviewedById", fields: [reviewedById], references: [id], onDelete: Restrict)
+
+  @@index([predictionRunId])
+  @@index([reviewedById])
+}
+
+// 61. SupplierEvaluation
+model SupplierEvaluation {
+  id                    String    @id @default(uuid()) @db.Uuid
+  supplierId            String    @db.Uuid
+  evaluatedById         String    @db.Uuid
+  qualityScore          Decimal?  @db.Decimal(5, 2)
+  deliveryScore         Decimal?  @db.Decimal(5, 2)
+  priceScore            Decimal?  @db.Decimal(5, 2)
+  overallScore          Decimal?  @db.Decimal(5, 2)
+  evaluationPeriodStart DateTime? @db.Date
+  evaluationPeriodEnd   DateTime? @db.Date
+  notes                 String?   @db.Text
+  evaluatedAt           DateTime
+
+  supplier    Supplier @relation("SupplierEvaluation_supplierId", fields: [supplierId], references: [id], onDelete: Restrict)
+  evaluatedBy User     @relation("SupplierEvaluation_evaluatedById", fields: [evaluatedById], references: [id], onDelete: Restrict)
+
+  @@index([supplierId])
+  @@index([evaluatedById])
+}
+
+enum DocumentRecordDocumentType {
+  BOQ
+  PURCHASE_ORDER
+  INVOICE
+  DELIVERY_NOTE
+  CERTIFICATE
+  OTHER
+}
+
+// 62. DocumentRecord
+model DocumentRecord {
+  id               String                     @id @default(uuid()) @db.Uuid
+  companyId        String                     @db.Uuid
+  uploadedById     String                     @db.Uuid
+  projectId        String?                    @db.Uuid
+  documentType     DocumentRecordDocumentType
+  originalFileName String                     @db.VarChar(255)
+  storageKey       String                     @db.VarChar(500)
+  mimeType         String                     @db.VarChar(150)
+  fileSizeBytes    BigInt
+  uploadedAt       DateTime
+  metadata         Json?                      @db.JsonB
+
+  company    Company  @relation("DocumentRecord_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  uploadedBy User     @relation("DocumentRecord_uploadedById", fields: [uploadedById], references: [id], onDelete: Restrict)
+  project    Project? @relation("DocumentRecord_projectId", fields: [projectId], references: [id], onDelete: Restrict)
+
+  @@index([companyId])
+  @@index([uploadedById])
+  @@index([projectId])
 }
