@@ -16,6 +16,7 @@ import { InventoryStockModule } from './inventory-stock/inventory-stock.module.j
 import { StockMovementsModule } from './stock-movements/stock-movements.module.js';
 import { ProjectAllocationsModule } from './project-allocations/project-allocations.module.js';
 import { ReservationsModule } from './reservations/reservations.module.js';
+import { MaterialRequestsModule } from './material-requests/material-requests.module.js';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ReservationsModule } from './reservations/reservations.module.js';
     StockMovementsModule,
     ProjectAllocationsModule,
     ReservationsModule,
+    MaterialRequestsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
