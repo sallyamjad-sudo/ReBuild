@@ -1,4 +1,4 @@
-// ReBuild — Prisma Schema (62 models, 8 parts)
+// ReBuild — Prisma Schema (64 models: 62 baseline + 2 review additions)
 // Generated from docs/database/data-dictionary.md v0.2
 // REVIEW DRAFT — not migration-ready. Business rules and SQL checks remain open.
 
@@ -268,12 +268,13 @@ model MaterialBatch {
   expiresAt      DateTime? @db.Date
   createdAt      DateTime  @default(now())
 
-  material          Material           @relation("MaterialBatch_materialId", fields: [materialId], references: [id], onDelete: Restrict)
-  supplier          Supplier?          @relation("MaterialBatch_supplierId", fields: [supplierId], references: [id], onDelete: Restrict)
-  inventoryStocks   InventoryStock[]   @relation("InventoryStock_batchId")
-  stockMovements    StockMovement[]    @relation("StockMovement_batchId")
-  transferItems     TransferItem[]     @relation("TransferItem_batchId")
-  traceabilityCodes TraceabilityCode[] @relation("TraceabilityCode_materialBatchId")
+  material             Material              @relation("MaterialBatch_materialId", fields: [materialId], references: [id], onDelete: Restrict)
+  supplier             Supplier?             @relation("MaterialBatch_supplierId", fields: [supplierId], references: [id], onDelete: Restrict)
+  inventoryStocks      InventoryStock[]      @relation("InventoryStock_batchId")
+  purchaseReceiptLines PurchaseReceiptLine[]
+  stockMovements       StockMovement[]       @relation("StockMovement_batchId")
+  transferItems        TransferItem[]        @relation("TransferItem_batchId")
+  traceabilityCodes    TraceabilityCode[]    @relation("TraceabilityCode_materialBatchId")
 
   @@index([materialId])
   @@index([supplierId])
@@ -289,16 +290,17 @@ model InventoryStock {
   damagedQuantity     Decimal  @default(0) @db.Decimal(18, 3)
   updatedAt           DateTime @updatedAt
 
-  batch                MaterialBatch         @relation("InventoryStock_batchId", fields: [batchId], references: [id], onDelete: Restrict)
-  location             InventoryLocation     @relation("InventoryStock_locationId", fields: [locationId], references: [id], onDelete: Restrict)
-  projectAllocations   ProjectAllocation[]   @relation("ProjectAllocation_inventoryStockId")
-  matchCandidates      MatchCandidate[]      @relation("MatchCandidate_inventoryStockId")
-  reservations         Reservation[]         @relation("Reservation_inventoryStockId")
-  damageReports        DamageReport[]        @relation("DamageReport_inventoryStockId")
-  materialRecoverys    MaterialRecovery[]    @relation("MaterialRecovery_inventoryStockId")
-  wasteRecords         WasteRecord[]         @relation("WasteRecord_inventoryStockId")
-  traceabilityCodes    TraceabilityCode[]    @relation("TraceabilityCode_inventoryStockId")
-  inventoryInspections InventoryInspection[] @relation("InventoryInspection_inventoryStockId")
+  batch                   MaterialBatch            @relation("InventoryStock_batchId", fields: [batchId], references: [id], onDelete: Restrict)
+  location                InventoryLocation        @relation("InventoryStock_locationId", fields: [locationId], references: [id], onDelete: Restrict)
+  projectAllocations      ProjectAllocation[]      @relation("ProjectAllocation_inventoryStockId")
+  matchCandidates         MatchCandidate[]         @relation("MatchCandidate_inventoryStockId")
+  optimizationOptionLines OptimizationOptionLine[]
+  reservations            Reservation[]            @relation("Reservation_inventoryStockId")
+  damageReports           DamageReport[]           @relation("DamageReport_inventoryStockId")
+  materialRecoverys       MaterialRecovery[]       @relation("MaterialRecovery_inventoryStockId")
+  wasteRecords            WasteRecord[]            @relation("WasteRecord_inventoryStockId")
+  traceabilityCodes       TraceabilityCode[]       @relation("TraceabilityCode_inventoryStockId")
+  inventoryInspections    InventoryInspection[]    @relation("InventoryInspection_inventoryStockId")
 
   @@unique([batchId, locationId])
   @@index([batchId])
@@ -651,19 +653,21 @@ enum ApprovalDecisionDecision {
 
 // 25. ApprovalDecision
 model ApprovalDecision {
-  id                String                   @id @default(uuid()) @db.Uuid
-  approvalRequestId String                   @db.Uuid
-  approvalStepId    String                   @db.Uuid
-  decidedById       String                   @db.Uuid
-  decision          ApprovalDecisionDecision
-  comment           String?                  @db.Text
-  decidedAt         DateTime
+  id                     String                   @id @default(uuid()) @db.Uuid
+  approvalRequestId      String                   @db.Uuid
+  approvalStepId         String                   @db.Uuid
+  decidedById            String                   @db.Uuid
+  approvalStepInstanceId String                   @db.Uuid
+  decision               ApprovalDecisionDecision
+  comment                String?                  @db.Text
+  decidedAt              DateTime
 
-  approvalRequest ApprovalRequest @relation("ApprovalDecision_approvalRequestId", fields: [approvalRequestId], references: [id], onDelete: Restrict)
-  approvalStep    ApprovalStep    @relation("ApprovalDecision_approvalStepId", fields: [approvalStepId], references: [id], onDelete: Restrict)
-  decidedBy       User            @relation("ApprovalDecision_decidedById", fields: [decidedById], references: [id], onDelete: Restrict)
+  approvalRequest      ApprovalRequest      @relation("ApprovalDecision_approvalRequestId", fields: [approvalRequestId], references: [id], onDelete: Restrict)
+  approvalStep         ApprovalStep         @relation("ApprovalDecision_approvalStepId", fields: [approvalStepId], references: [id], onDelete: Restrict)
+  decidedBy            User                 @relation("ApprovalDecision_decidedById", fields: [decidedById], references: [id], onDelete: Restrict)
+  approvalStepInstance ApprovalStepInstance @relation("ApprovalDecision_stepInstanceId", fields: [approvalStepInstanceId], references: [id], onDelete: Restrict)
 
-  @@unique([approvalRequestId, approvalStepId, decidedById])
+  @@unique([approvalStepInstanceId, decidedById])
   @@index([approvalRequestId])
   @@index([approvalStepId])
   @@index([decidedById])
@@ -688,8 +692,9 @@ model ApprovalStepInstance {
   activatedAt       DateTime?
   completedAt       DateTime?
 
-  approvalRequest ApprovalRequest @relation("ApprovalStepInstance_approvalRequestId", fields: [approvalRequestId], references: [id], onDelete: Restrict)
-  approvalStep    ApprovalStep    @relation("ApprovalStepInstance_approvalStepId", fields: [approvalStepId], references: [id], onDelete: Restrict)
+  approvalRequest ApprovalRequest    @relation("ApprovalStepInstance_approvalRequestId", fields: [approvalRequestId], references: [id], onDelete: Restrict)
+  approvalStep    ApprovalStep       @relation("ApprovalStepInstance_approvalStepId", fields: [approvalStepId], references: [id], onDelete: Restrict)
+  decisions       ApprovalDecision[] @relation("ApprovalDecision_stepInstanceId")
 
   @@unique([approvalRequestId, stepOrder])
   @@index([approvalRequestId])
@@ -986,6 +991,8 @@ model User {
   anomalyRecords       AnomalyRecord[]       @relation("AnomalyRecord_reviewedById")
   supplierEvaluations  SupplierEvaluation[]  @relation("SupplierEvaluation_evaluatedById")
   documentRecords      DocumentRecord[]      @relation("DocumentRecord_uploadedById")
+
+  purchaseReceiptLines PurchaseReceiptLine[]
 }
 
 enum CompanyMemberStatus {
@@ -1250,11 +1257,12 @@ model Supplier {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
-  company                Company                 @relation("Supplier_companyId", fields: [companyId], references: [id], onDelete: Restrict)
-  materialBatchs         MaterialBatch[]         @relation("MaterialBatch_supplierId")
-  supplierMaterialOffers SupplierMaterialOffer[] @relation("SupplierMaterialOffer_supplierId")
-  purchaseOrders         PurchaseOrder[]         @relation("PurchaseOrder_supplierId")
-  supplierEvaluations    SupplierEvaluation[]    @relation("SupplierEvaluation_supplierId")
+  company                 Company                  @relation("Supplier_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  materialBatchs          MaterialBatch[]          @relation("MaterialBatch_supplierId")
+  supplierMaterialOffers  SupplierMaterialOffer[]  @relation("SupplierMaterialOffer_supplierId")
+  optimizationOptionLines OptimizationOptionLine[]
+  purchaseOrders          PurchaseOrder[]          @relation("PurchaseOrder_supplierId")
+  supplierEvaluations     SupplierEvaluation[]     @relation("SupplierEvaluation_supplierId")
 
   @@index([companyId])
 }
@@ -1273,8 +1281,9 @@ model SupplierMaterialOffer {
   isActive              Boolean   @default(true)
   createdAt             DateTime  @default(now())
 
-  supplier Supplier @relation("SupplierMaterialOffer_supplierId", fields: [supplierId], references: [id], onDelete: Restrict)
-  material Material @relation("SupplierMaterialOffer_materialId", fields: [materialId], references: [id], onDelete: Restrict)
+  supplier                Supplier                 @relation("SupplierMaterialOffer_supplierId", fields: [supplierId], references: [id], onDelete: Restrict)
+  material                Material                 @relation("SupplierMaterialOffer_materialId", fields: [materialId], references: [id], onDelete: Restrict)
+  optimizationOptionLines OptimizationOptionLine[]
 
   @@index([supplierId])
   @@index([materialId])
@@ -1354,10 +1363,11 @@ model PurchaseOrder {
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
 
-  company            Company             @relation("PurchaseOrder_companyId", fields: [companyId], references: [id], onDelete: Restrict)
-  supplier           Supplier            @relation("PurchaseOrder_supplierId", fields: [supplierId], references: [id], onDelete: Restrict)
-  project            Project             @relation("PurchaseOrder_projectId", fields: [projectId], references: [id], onDelete: Restrict)
-  purchaseOrderItems PurchaseOrderItem[] @relation("PurchaseOrderItem_purchaseOrderId")
+  company            Company               @relation("PurchaseOrder_companyId", fields: [companyId], references: [id], onDelete: Restrict)
+  supplier           Supplier              @relation("PurchaseOrder_supplierId", fields: [supplierId], references: [id], onDelete: Restrict)
+  project            Project               @relation("PurchaseOrder_projectId", fields: [projectId], references: [id], onDelete: Restrict)
+  purchaseOrderItems PurchaseOrderItem[]   @relation("PurchaseOrderItem_purchaseOrderId")
+  receiptLines       PurchaseReceiptLine[]
 
   @@unique([companyId, orderNumber])
   @@index([companyId])
@@ -1376,9 +1386,10 @@ model PurchaseOrderItem {
   unitPrice             Decimal @db.Decimal(18, 2)
   unit                  String  @db.VarChar(30)
 
-  purchaseOrder       PurchaseOrder        @relation("PurchaseOrderItem_purchaseOrderId", fields: [purchaseOrderId], references: [id], onDelete: Restrict)
-  purchaseRequestItem PurchaseRequestItem? @relation("PurchaseOrderItem_purchaseRequestItemId", fields: [purchaseRequestItemId], references: [id], onDelete: Restrict)
-  material            Material             @relation("PurchaseOrderItem_materialId", fields: [materialId], references: [id], onDelete: Restrict)
+  purchaseOrder       PurchaseOrder         @relation("PurchaseOrderItem_purchaseOrderId", fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  purchaseRequestItem PurchaseRequestItem?  @relation("PurchaseOrderItem_purchaseRequestItemId", fields: [purchaseRequestItemId], references: [id], onDelete: Restrict)
+  material            Material              @relation("PurchaseOrderItem_materialId", fields: [materialId], references: [id], onDelete: Restrict)
+  receiptLines        PurchaseReceiptLine[]
 
   @@index([purchaseOrderId])
   @@index([purchaseRequestItemId])
@@ -1441,7 +1452,8 @@ model OptimizationOption {
   isRecommended         Boolean                      @default(false)
   details               Json?                        @db.JsonB
 
-  optimizationRun OptimizationRun @relation("OptimizationOption_optimizationRunId", fields: [optimizationRunId], references: [id], onDelete: Restrict)
+  optimizationRun OptimizationRun          @relation("OptimizationOption_optimizationRunId", fields: [optimizationRunId], references: [id], onDelete: Restrict)
+  sourceLines     OptimizationOptionLine[]
 
   @@unique([optimizationRunId, rank])
   @@index([optimizationRunId])
@@ -1723,4 +1735,56 @@ model DocumentRecord {
   @@index([companyId])
   @@index([uploadedById])
   @@index([projectId])
+}
+
+// ==========================================
+// DESIGN ADDITIONS (proposed from v0.2 review gates)
+// ==========================================
+
+// 63. Normalized sources used by one optimization option.
+enum OptimizationOptionSourceType {
+  INVENTORY
+  SUPPLIER_OFFER
+}
+
+model OptimizationOptionLine {
+  id                      String                       @id @default(uuid()) @db.Uuid
+  optimizationOptionId    String                       @db.Uuid
+  sourceType              OptimizationOptionSourceType
+  inventoryStockId        String?                      @db.Uuid
+  supplierMaterialOfferId String?                      @db.Uuid
+  quantity                Decimal                      @db.Decimal(18, 3)
+  estimatedUnitCost       Decimal?                     @db.Decimal(18, 2)
+  createdAt               DateTime                     @default(now())
+
+  optimizationOption    OptimizationOption     @relation(fields: [optimizationOptionId], references: [id], onDelete: Restrict)
+  inventoryStock        InventoryStock?        @relation(fields: [inventoryStockId], references: [id], onDelete: Restrict)
+  supplierMaterialOffer SupplierMaterialOffer? @relation(fields: [supplierMaterialOfferId], references: [id], onDelete: Restrict)
+  supplier              Supplier?              @relation(fields: [supplierId], references: [id])
+  supplierId            String?                @db.Uuid
+
+  @@index([optimizationOptionId])
+  @@index([inventoryStockId])
+  @@index([supplierMaterialOfferId])
+}
+
+// 64. Traceable procurement receipt lines, linked to material batches.
+model PurchaseReceiptLine {
+  id                  String   @id @default(uuid()) @db.Uuid
+  purchaseOrderItemId String   @db.Uuid
+  materialBatchId     String   @db.Uuid
+  receivedQuantity    Decimal  @db.Decimal(18, 3)
+  receivedAt          DateTime @default(now())
+  receivedById        String   @db.Uuid
+  notes               String?  @db.Text
+
+  purchaseOrderItem PurchaseOrderItem @relation(fields: [purchaseOrderItemId], references: [id], onDelete: Restrict)
+  materialBatch     MaterialBatch     @relation(fields: [materialBatchId], references: [id], onDelete: Restrict)
+  receivedBy        User              @relation(fields: [receivedById], references: [id], onDelete: Restrict)
+  purchaseOrder     PurchaseOrder?    @relation(fields: [purchaseOrderId], references: [id])
+  purchaseOrderId   String?           @db.Uuid
+
+  @@index([purchaseOrderItemId])
+  @@index([materialBatchId])
+  @@index([receivedById])
 }
