@@ -9,6 +9,8 @@ import { ProjectsModule } from './projects/projects.module.js';
 import { SitesModule } from './sites/sites.module.js';
 import { WarehousesModule } from './warehouses/warehouses.module.js';
 import { InventoryLocationsModule } from './inventory-locations/inventory-locations.module.js';
+import { MaterialsModule } from './materials/materials.module.js';
+import { MaterialCategoriesModule } from './material-categories/material-categories.module.js';
 
 @Module({
   imports: [
@@ -21,6 +23,8 @@ import { InventoryLocationsModule } from './inventory-locations/inventory-locati
     SitesModule,
     WarehousesModule,
     InventoryLocationsModule,
+    MaterialsModule,
+    MaterialCategoriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
