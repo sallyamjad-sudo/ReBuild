@@ -15,6 +15,7 @@ import { MaterialBatchesModule } from './material-batches/material-batches.modul
 import { InventoryStockModule } from './inventory-stock/inventory-stock.module.js';
 import { StockMovementsModule } from './stock-movements/stock-movements.module.js';
 import { ProjectAllocationsModule } from './project-allocations/project-allocations.module.js';
+import { ReservationsModule } from './reservations/reservations.module.js';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { ProjectAllocationsModule } from './project-allocations/project-allocati
     InventoryStockModule,
     StockMovementsModule,
     ProjectAllocationsModule,
+    ReservationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
