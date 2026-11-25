@@ -14,6 +14,7 @@ import { MaterialCategoriesModule } from './material-categories/material-categor
 import { MaterialBatchesModule } from './material-batches/material-batches.module.js';
 import { InventoryStockModule } from './inventory-stock/inventory-stock.module.js';
 import { StockMovementsModule } from './stock-movements/stock-movements.module.js';
+import { ProjectAllocationsModule } from './project-allocations/project-allocations.module.js';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { StockMovementsModule } from './stock-movements/stock-movements.module.j
     MaterialBatchesModule,
     InventoryStockModule,
     StockMovementsModule,
+    ProjectAllocationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
