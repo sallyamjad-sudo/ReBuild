@@ -15,3 +15,9 @@
 **/.agents/skills/
 **/.claude/skills/
 **/.windsurf/skills/apps/backend/src/generated/prisma/
+
+# Generated Prisma client
+/apps/backend/src/generated/
+
+# Local editor settings
+/apps/backend/.windsurf/

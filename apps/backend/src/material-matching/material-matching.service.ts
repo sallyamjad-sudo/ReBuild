@@ -30,12 +30,7 @@ export class MaterialMatchingService {
   const uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-  console.log('UUID DEBUG:', {
-    value: JSON.stringify(id),
-    type: typeof id,
-    length: id?.length,
-    isValid: uuidRegex.test(id),
-  });
+
 
   if (typeof id !== 'string' || !uuidRegex.test(id)) {
     throw new BadRequestException('Invalid UUID');
