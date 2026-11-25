@@ -14,4 +14,4 @@
 # Generated Prisma AI skills
 **/.agents/skills/
 **/.claude/skills/
-**/.windsurf/skills/
+**/.windsurf/skills/apps/backend/src/generated/prisma/
