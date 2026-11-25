@@ -17,6 +17,7 @@ import { StockMovementsModule } from './stock-movements/stock-movements.module.j
 import { ProjectAllocationsModule } from './project-allocations/project-allocations.module.js';
 import { ReservationsModule } from './reservations/reservations.module.js';
 import { MaterialRequestsModule } from './material-requests/material-requests.module.js';
+import { MaterialMatchingModule } from './material-matching/material-matching.module.js';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { MaterialRequestsModule } from './material-requests/material-requests.mo
     ProjectAllocationsModule,
     ReservationsModule,
     MaterialRequestsModule,
+    MaterialMatchingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
