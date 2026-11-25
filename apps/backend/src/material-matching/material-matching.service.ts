@@ -341,6 +341,7 @@ private positive(value: Prisma.Decimal): Prisma.Decimal {
         });
       }
 
+      // Rank candidates by score, available quantity, and expiry.
       candidates.sort((a, b) => {
         if (a.matchScore !== b.matchScore) {
           return b.matchScore - a.matchScore;
@@ -353,10 +354,8 @@ private positive(value: Prisma.Decimal): Prisma.Decimal {
           return quantityOrder;
         }
 
-        // Earlier expiry first when other factors are equal.
         const expiryA =
           a.expiresAt?.getTime() ?? Number.MAX_SAFE_INTEGER;
-
         const expiryB =
           b.expiresAt?.getTime() ?? Number.MAX_SAFE_INTEGER;
 
@@ -369,22 +368,87 @@ private positive(value: Prisma.Decimal): Prisma.Decimal {
         );
       });
 
-      let remaining = remainingDemand;
+      const stockBatchMap = new Map(
+        stocks.map((stock) => [stock.id, stock.batchId]),
+      );
+
       let selectedBatchId: string | null = null;
+
+      if (item.singleBatchOnly) {
+        const batchGroups = new Map<
+          string,
+          {
+            totalQuantity: Prisma.Decimal;
+            bestScore: number;
+          }
+        >();
+
+        for (const candidate of candidates) {
+          const batchId = stockBatchMap.get(
+            candidate.inventoryStockId,
+          );
+
+          if (!batchId) continue;
+
+          const existing = batchGroups.get(batchId);
+
+          if (existing) {
+            existing.totalQuantity = existing.totalQuantity.plus(
+              candidate.eligibleQuantity,
+            );
+            existing.bestScore = Math.max(
+              existing.bestScore,
+              candidate.matchScore,
+            );
+          } else {
+            batchGroups.set(batchId, {
+              totalQuantity: candidate.eligibleQuantity,
+              bestScore: candidate.matchScore,
+            });
+          }
+        }
+
+        const rankedBatches = [...batchGroups.entries()].sort(
+          ([idA, a], [idB, b]) => {
+            const coverageA = Prisma.Decimal.min(
+              a.totalQuantity,
+              remainingDemand,
+            );
+            const coverageB = Prisma.Decimal.min(
+              b.totalQuantity,
+              remainingDemand,
+            );
+
+            const coverageOrder = coverageB.comparedTo(coverageA);
+
+            if (coverageOrder !== 0) {
+              return coverageOrder;
+            }
+
+            if (a.bestScore !== b.bestScore) {
+              return b.bestScore - a.bestScore;
+            }
+
+            return idA.localeCompare(idB);
+          },
+        );
+
+        selectedBatchId = rankedBatches[0]?.[0] ?? null;
+      }
+
+      let remaining = remainingDemand;
 
       for (const candidate of candidates) {
         if (remaining.lte(0)) break;
 
-        const stock = stocks.find(
-          (entry) => entry.id === candidate.inventoryStockId,
-        )!;
+        if (item.singleBatchOnly) {
+          const candidateBatchId = stockBatchMap.get(
+            candidate.inventoryStockId,
+          );
 
-        if (
-          item.singleBatchOnly &&
-          selectedBatchId !== null &&
-          stock.batchId !== selectedBatchId
-        ) {
-          continue;
+          if (candidateBatchId !== selectedBatchId) {
+            continue;
+          }
         }
 
         const proposedQuantity = Prisma.Decimal.min(
@@ -395,7 +459,6 @@ private positive(value: Prisma.Decimal): Prisma.Decimal {
         if (proposedQuantity.gt(0)) {
           candidate.proposedQuantity = proposedQuantity;
           remaining = remaining.minus(proposedQuantity);
-          selectedBatchId = stock.batchId;
         }
       }
 
