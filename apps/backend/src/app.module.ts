@@ -13,6 +13,7 @@ import { MaterialsModule } from './materials/materials.module.js';
 import { MaterialCategoriesModule } from './material-categories/material-categories.module.js';
 import { MaterialBatchesModule } from './material-batches/material-batches.module.js';
 import { InventoryStockModule } from './inventory-stock/inventory-stock.module.js';
+import { StockMovementsModule } from './stock-movements/stock-movements.module.js';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { InventoryStockModule } from './inventory-stock/inventory-stock.module.j
     MaterialCategoriesModule,
     MaterialBatchesModule,
     InventoryStockModule,
+    StockMovementsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
