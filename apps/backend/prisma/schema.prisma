@@ -6,6 +6,7 @@ generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
 }
+
 datasource db {
   provider = "postgresql"
 }
@@ -438,9 +439,10 @@ model MatchResult {
   executedAt              DateTime
   expiresAt               DateTime?
 
-  requestItem      MaterialRequestItem @relation("MatchResult_requestItemId", fields: [requestItemId], references: [id], onDelete: Restrict)
-  matchCandidates  MatchCandidate[]    @relation("MatchCandidate_matchResultId")
-  optimizationRuns OptimizationRun[]   @relation("OptimizationRun_matchResultId")
+  requestItem       MaterialRequestItem @relation("MatchResult_requestItemId", fields: [requestItemId], references: [id], onDelete: Restrict)
+  matchCandidates   MatchCandidate[]    @relation("MatchCandidate_matchResultId")
+  optimizationRuns  OptimizationRun[]   @relation("OptimizationRun_matchResultId")
+  matchConfirmation MatchConfirmation?
 
   @@index([requestItemId])
 }
@@ -462,6 +464,18 @@ model MatchCandidate {
   @@unique([matchResultId, rank])
   @@index([matchResultId])
   @@index([inventoryStockId])
+}
+
+model MatchConfirmation {
+  id            String   @id @default(uuid()) @db.Uuid
+  matchResultId String   @unique @db.Uuid
+  confirmedById String   @db.Uuid
+  confirmedAt   DateTime @default(now())
+
+  matchResult  MatchResult   @relation(fields: [matchResultId], references: [id], onDelete: Restrict)
+  reservations Reservation[]
+
+  @@index([confirmedById])
 }
 
 enum ReservationStatus {
@@ -487,11 +501,13 @@ model Reservation {
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 
-  requestItem       MaterialRequestItem @relation("Reservation_requestItemId", fields: [requestItemId], references: [id], onDelete: Restrict)
-  inventoryStock    InventoryStock      @relation("Reservation_inventoryStockId", fields: [inventoryStockId], references: [id], onDelete: Restrict)
-  projectAllocation ProjectAllocation?  @relation("Reservation_projectAllocationId", fields: [projectAllocationId], references: [id], onDelete: Restrict)
-  reservedBy        User                @relation("Reservation_reservedById", fields: [reservedById], references: [id], onDelete: Restrict)
-  transferItems     TransferItem[]      @relation("TransferItem_reservationId")
+  requestItem         MaterialRequestItem @relation("Reservation_requestItemId", fields: [requestItemId], references: [id], onDelete: Restrict)
+  inventoryStock      InventoryStock      @relation("Reservation_inventoryStockId", fields: [inventoryStockId], references: [id], onDelete: Restrict)
+  projectAllocation   ProjectAllocation?  @relation("Reservation_projectAllocationId", fields: [projectAllocationId], references: [id], onDelete: Restrict)
+  reservedBy          User                @relation("Reservation_reservedById", fields: [reservedById], references: [id], onDelete: Restrict)
+  transferItems       TransferItem[]      @relation("TransferItem_reservationId")
+  matchConfirmation   MatchConfirmation?  @relation(fields: [matchConfirmationId], references: [id])
+  matchConfirmationId String?             @db.Uuid
 
   @@index([requestItemId])
   @@index([inventoryStockId])
