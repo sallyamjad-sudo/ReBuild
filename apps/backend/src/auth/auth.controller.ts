@@ -5,13 +5,14 @@ import {
   Get,
   Post,
   Req,
-  UseGuards,
+  SetMetadata,
 } from '@nestjs/common';
+
 import type { Request } from 'express';
 
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
-import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import { Public } from './permissions/public.decorator.js';
 
 type AuthenticatedRequest = Request & {
   user: {
@@ -26,14 +27,16 @@ export class AuthController {
     private readonly authService: AuthService,
   ) {}
 
+  @Public()
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get('me')
-  getProfile(@Req() request: AuthenticatedRequest) {
+  getProfile(
+    @Req() request: AuthenticatedRequest,
+  ) {
     return request.user;
   }
 }
