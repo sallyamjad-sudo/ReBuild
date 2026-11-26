@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { AuthModule } from './auth/auth.module.js';
 import { CompaniesModule } from './companies/companies.module.js';
 import { ProjectsModule } from './projects/projects.module.js';
 import { SitesModule } from './sites/sites.module.js';
@@ -25,6 +26,7 @@ import { MaterialMatchingModule } from './material-matching/material-matching.mo
       isGlobal: true,
     }),
     PrismaModule,
+    AuthModule,
     CompaniesModule,
     ProjectsModule,
     SitesModule,
