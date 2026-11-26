@@ -15,7 +15,9 @@ export type AuthorizationScope = {
 
 @Injectable()
 export class AuthorizationScopeService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+  ) {}
 
   async resolveMaterialRequest(
     requestId: string,
@@ -53,19 +55,42 @@ export class AuthorizationScopeService {
     };
   }
 
+  async resolveRequestItem(
+    requestItemId: string,
+  ): Promise<AuthorizationScope> {
+    const item =
+      await this.prisma.materialRequestItem.findUnique({
+        where: { id: requestItemId },
+        select: {
+          requestId: true,
+        },
+      });
+
+    if (!item) {
+      throw new NotFoundException(
+        'Material request item not found',
+      );
+    }
+
+    return this.resolveMaterialRequest(
+      item.requestId,
+    );
+  }
+
   async resolveMatchResult(
     matchResultId: string,
   ): Promise<AuthorizationScope> {
-    const matchResult = await this.prisma.matchResult.findUnique({
-      where: { id: matchResultId },
-      select: {
-        requestItem: {
-          select: {
-            requestId: true,
+    const matchResult =
+      await this.prisma.matchResult.findUnique({
+        where: { id: matchResultId },
+        select: {
+          requestItem: {
+            select: {
+              requestId: true,
+            },
           },
         },
-      },
-    });
+      });
 
     if (!matchResult) {
       throw new NotFoundException(

@@ -41,6 +41,24 @@ const permissions = [
     action: 'submit',
     description: 'Submit material requests',
   },
+  {
+    code: 'material_matching.read',
+    resource: 'material_matching',
+    action: 'read',
+    description: 'View material matching results',
+  },
+  {
+    code: 'material_matching.run',
+    resource: 'material_matching',
+    action: 'run',
+    description: 'Run intelligent material matching',
+  },
+  {
+    code: 'material_matching.confirm',
+    resource: 'material_matching',
+    action: 'confirm',
+    description: 'Confirm material matches and create reservations',
+  },
 ];
 
 async function main() {
@@ -55,10 +73,12 @@ async function main() {
         resource: permission.resource,
         action: permission.action,
         description: permission.description,
+        isActive: true,
       },
       create: {
         id: randomUUID(),
         ...permission,
+        isActive: true,
       },
     });
   }
